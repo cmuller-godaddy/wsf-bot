@@ -64,4 +64,3 @@ Alternatively, the bot can be configured through a simple environment variable,
     export WSF_BOT_CONFIG='<JSON Config>'
     docker run -e WSF_BOT_CONFIG="${WSF_BOT_CONFIG}" ghcr.io/wakawaka54/wsf-bot:latest
     ```
-
