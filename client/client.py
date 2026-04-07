@@ -27,33 +27,46 @@ VEHICLE_HEIGHT_MAP = {
 
 TIME_FORMAT = '%I:%M %p'
 
+MAX_RETRIES = 3
+
+def _fill_and_submit(page, request: FerryRequest):
+    page.goto(WSF_ENDPOINT)
+
+    page.locator('#MainContent_dlFromTermList').select_option(value=TERMINAL_MAP[request.terminal_from])
+    page.locator('#MainContent_dlToTermList').select_option(value=TERMINAL_MAP[request.terminal_to])
+
+    page.locator('#MainContent_txtDatePicker').type(request.sailing_date.replace('/', ''))
+    page.click('body')
+
+    page.locator('#MainContent_dlVehicle').select_option(value=VEHICLE_MAP[request.vehicle_size])
+    page.locator('#MainContent_ddlCarTruck14To22').select_option(value=VEHICLE_HEIGHT_MAP[request.vehicle_height])
+
+    page.locator('#MainContent_linkBtnContinue').click()
+    page.wait_for_load_state('networkidle')
+
+    return page.locator('#MainContent_gvschedule tr')
+
 def fetch_ferry_schedule(request: FerryRequest):
     if request.terminal_from not in TERMINAL_MAP:
         raise TypeError(f'Unknown terminal name provided: {request.terminal_from}')
 
-    if request.terminal_from not in TERMINAL_MAP:
-        raise TypeError(f'Unknown terminal name provided: {request.terminal_from}')
+    if request.terminal_to not in TERMINAL_MAP:
+        raise TypeError(f'Unknown terminal name provided: {request.terminal_to}')
 
     with sync_playwright() as playwright:
         chrome = playwright.chromium
         browser = chrome.launch()
         page = browser.new_page()
-        page.goto(WSF_ENDPOINT)
 
-        page.locator('#MainContent_dlFromTermList').select_option(value=TERMINAL_MAP[request.terminal_from])
-        page.locator('#MainContent_dlToTermList').select_option(value=TERMINAL_MAP[request.terminal_to])
+        rows = _fill_and_submit(page, request)
 
-        page.locator('#MainContent_txtDatePicker').type(request.sailing_date.replace('/', ''))
-        page.click('body')
+        for attempt in range(1, MAX_RETRIES):
+            if rows.count() > 0:
+                break
+            print(f'  No schedule table found, retrying ({attempt}/{MAX_RETRIES})...')
+            rows = _fill_and_submit(page, request)
 
-        page.locator('#MainContent_dlVehicle').select_option(value=VEHICLE_MAP[request.vehicle_size])
-        page.locator('#MainContent_ddlCarTruck14To22').select_option(value=VEHICLE_HEIGHT_MAP[request.vehicle_height])
-
-        page.locator('#MainContent_linkBtnContinue').click()
-
-        page.wait_for_timeout(timeout=1000)
-
-        content = page.locator('#MainContent_gvschedule tr').all_inner_texts()
+        content = rows.all_inner_texts()
 
         page.close()
 
