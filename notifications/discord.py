@@ -1,6 +1,10 @@
+import logging
+
 from discord_webhook import DiscordWebhook
 
 from notifications.types import FoundAvailableNotification
+
+logger = logging.getLogger(__name__)
 
 
 def send_notification(notification: FoundAvailableNotification, webhook: str):
@@ -20,6 +24,6 @@ def send_notification(notification: FoundAvailableNotification, webhook: str):
 
     message = '\n'.join(lines)
 
-    print(f'Sending discord message to {webhook}:\n{message}')
+    logger.info(f'Sending discord message to {webhook}:\n{message}')
 
     DiscordWebhook(url=webhook, content=message).execute()

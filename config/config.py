@@ -1,8 +1,11 @@
 import yaml
 import json
+import logging
 import os
 
 from config.types import Config
+
+logger = logging.getLogger(__name__)
 
 CONFIG_PATH = 'config.yml'
 CONFIG_ENV = 'WSF_BOT_CONFIG'
@@ -10,11 +13,11 @@ CONFIG_ENV = 'WSF_BOT_CONFIG'
 
 def read_config() -> Config:
     if os.getenv(CONFIG_ENV) is not None:
-        print('Reading configuration from environment: ' + CONFIG_ENV)
+        logger.info('Reading configuration from environment: ' + CONFIG_ENV)
         return Config(**json.loads(os.getenv(CONFIG_ENV)))
 
     if os.path.exists(CONFIG_PATH):
-        print('Reading configuration from file: ' + CONFIG_PATH)
+        logger.info('Reading configuration from file: ' + CONFIG_PATH)
         with open(CONFIG_PATH, 'r') as file:
             return Config(**yaml.safe_load(file))
 

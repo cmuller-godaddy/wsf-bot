@@ -1,6 +1,7 @@
 from time import sleep
 import traceback
 import datetime
+import logging
 
 from client.client import fetch_ferry_schedule
 from client.types import VehicleSize, VehicleHeight, FerryRequest
@@ -9,14 +10,20 @@ from config.types import Config, ConfigParser
 from notifications.discord import send_notification
 from notifications.types import FoundAvailableNotification
 
+logging.basicConfig(
+    format='%(asctime)s %(levelname)s %(message)s',
+    level=logging.INFO,
+)
+logger = logging.getLogger(__name__)
+
 
 def run(config: Config):
     requests = config['requests']
 
-    print(f'Checking {len(requests)} ferry requests...')
+    logger.info(f'Checking {len(requests)} ferry requests...')
 
     for request in requests:
-        print(
+        logger.info(
             f'Checking for a ferry from ' +
             f'{request["terminal_from"]} to {request["terminal_to"]} on {request["sailing_date"]} ' +
             f'with vehicle size {request["vehicle_size"]} / {request["vehicle_height"]}.'
@@ -35,7 +42,7 @@ def run(config: Config):
         try:
             schedule = fetch_ferry_schedule(request=ferry_request)
         except Exception as error:
-            print('Failed to fetch ferry schedule due to: ', error)
+            logger.error('Failed to fetch ferry schedule due to: %s', error)
             continue
 
         has_available = any(entry.available for entry in schedule.entries)
@@ -43,21 +50,22 @@ def run(config: Config):
         available = list(filter(lambda x: x.available, schedule.entries))
 
         if has_available:
-            print(f'Found {len(available)} ferries available!')
+            logger.info(f'Found {len(available)} ferries available!')
             send_notification(
                 notification=FoundAvailableNotification(schedule=schedule),
                 webhook=config['discord']['webhook']
             )
         else:
-            print('Found no ferries available.')
+            logger.info('Found no ferries available.')
 
 
 if __name__ == '__main__':
 
-    print('Starting wfs-bot script...')
+    logger.info('Starting wsf-bot script...')
 
     run_config = read_config()
 
     while True:
         run(run_config)
+        logger.info(f'Sleeping for {run_config["interval"]} seconds...')
         sleep(run_config['interval'])

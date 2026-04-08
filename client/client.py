@@ -1,5 +1,6 @@
 from playwright.sync_api import sync_playwright
 import datetime
+import logging
 
 from client.types import VehicleSize, VehicleHeight, FerryScheduleEntry, FerrySchedule, FerryRequest
 
@@ -29,6 +30,8 @@ TIME_FORMAT = '%I:%M %p'
 
 MAX_RETRIES = 3
 
+logger = logging.getLogger(__name__)
+
 def _fill_and_submit(page, request: FerryRequest):
     page.goto(WSF_ENDPOINT)
 
@@ -55,20 +58,24 @@ def fetch_ferry_schedule(request: FerryRequest):
 
     with sync_playwright() as playwright:
         chrome = playwright.chromium
+        logger.info('Launching browser...')
         browser = chrome.launch()
         page = browser.new_page()
 
+        logger.info('Navigating to WSF schedule page...')
         rows = _fill_and_submit(page, request)
 
         for attempt in range(1, MAX_RETRIES):
             if rows.count() > 0:
                 break
-            print(f'  No schedule table found, retrying ({attempt}/{MAX_RETRIES})...')
+            logger.warning(f'No schedule table found, retrying ({attempt}/{MAX_RETRIES})...')
             rows = _fill_and_submit(page, request)
 
         content = rows.all_inner_texts()
 
+        logger.info('Closing browser...')
         page.close()
+        browser.close()
 
     sailing_time_from = \
         datetime.datetime.strptime(request.sailing_time_from, TIME_FORMAT).time() if request.sailing_time_from else None
