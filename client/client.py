@@ -33,7 +33,7 @@ MAX_RETRIES = 3
 logger = logging.getLogger(__name__)
 
 def _fill_and_submit(page, request: FerryRequest):
-    page.goto(WSF_ENDPOINT)
+    page.goto(WSF_ENDPOINT, wait_until='domcontentloaded', timeout=15000)
 
     page.locator('#MainContent_dlFromTermList').select_option(value=TERMINAL_MAP[request.terminal_from])
     page.locator('#MainContent_dlToTermList').select_option(value=TERMINAL_MAP[request.terminal_to])
@@ -45,7 +45,7 @@ def _fill_and_submit(page, request: FerryRequest):
     page.locator('#MainContent_ddlCarTruck14To22').select_option(value=VEHICLE_HEIGHT_MAP[request.vehicle_height])
 
     page.locator('#MainContent_linkBtnContinue').click()
-    page.wait_for_load_state('networkidle')
+    page.wait_for_load_state('domcontentloaded', timeout=15000)
 
     return page.locator('#MainContent_gvschedule tr')
 
@@ -60,22 +60,23 @@ def fetch_ferry_schedule(request: FerryRequest):
         chrome = playwright.chromium
         logger.info('Launching browser...')
         browser = chrome.launch()
-        page = browser.new_page()
+        try:
+            page = browser.new_page()
+            page.set_default_timeout(15000)
 
-        logger.info('Navigating to WSF schedule page...')
-        rows = _fill_and_submit(page, request)
-
-        for attempt in range(1, MAX_RETRIES):
-            if rows.count() > 0:
-                break
-            logger.warning(f'No schedule table found, retrying ({attempt}/{MAX_RETRIES})...')
+            logger.info('Navigating to WSF schedule page...')
             rows = _fill_and_submit(page, request)
 
-        content = rows.all_inner_texts()
+            for attempt in range(1, MAX_RETRIES):
+                if rows.count() > 0:
+                    break
+                logger.warning(f'No schedule table found, retrying ({attempt}/{MAX_RETRIES})...')
+                rows = _fill_and_submit(page, request)
 
-        logger.info('Closing browser...')
-        page.close()
-        browser.close()
+            content = rows.all_inner_texts()
+        finally:
+            logger.info('Closing browser...')
+            browser.close()
 
     sailing_time_from = \
         datetime.datetime.strptime(request.sailing_time_from, TIME_FORMAT).time() if request.sailing_time_from else None
