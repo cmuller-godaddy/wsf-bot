@@ -45,7 +45,7 @@ def _fill_and_submit(page, request: FerryRequest):
     page.locator('#MainContent_ddlCarTruck14To22').select_option(value=VEHICLE_HEIGHT_MAP[request.vehicle_height])
 
     page.locator('#MainContent_linkBtnContinue').click()
-    page.wait_for_load_state('domcontentloaded', timeout=15000)
+    page.locator('#MainContent_gvschedule').wait_for(state='visible', timeout=15000)
 
     return page.locator('#MainContent_gvschedule tr')
 
@@ -74,6 +74,9 @@ def fetch_ferry_schedule(request: FerryRequest):
                 rows = _fill_and_submit(page, request)
 
             content = rows.all_inner_texts()
+            logger.info(f'Page title: {page.title()}')
+            logger.info(f'Page URL: {page.url}')
+            logger.info(f'Found {len(content)} rows, first row: {content[0] if content else "none"}')
         finally:
             logger.info('Closing browser...')
             browser.close()
