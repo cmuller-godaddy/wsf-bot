@@ -45,7 +45,7 @@ def _fill_and_submit(page, request: FerryRequest):
     page.locator('#MainContent_ddlCarTruck14To22').select_option(value=VEHICLE_HEIGHT_MAP[request.vehicle_height])
 
     page.locator('#MainContent_linkBtnContinue').click()
-    page.locator('#MainContent_gvschedule').wait_for(state='visible', timeout=15000)
+    page.locator('#MainContent_gvschedule').wait_for(state='visible', timeout=30000)
 
     return page.locator('#MainContent_gvschedule tr')
 
