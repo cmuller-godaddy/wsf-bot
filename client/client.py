@@ -45,7 +45,13 @@ def _fill_and_submit(page, request: FerryRequest):
     page.locator('#MainContent_ddlCarTruck14To22').select_option(value=VEHICLE_HEIGHT_MAP[request.vehicle_height])
 
     page.locator('#MainContent_linkBtnContinue').click()
-    page.locator('#MainContent_gvschedule').wait_for(state='visible', timeout=30000)
+    try:
+        page.locator('#MainContent_gvschedule').wait_for(state='visible', timeout=30000)
+    except Exception:
+        logger.error(f'Page URL: {page.url}')
+        logger.error(f'Page title: {page.title()}')
+        logger.error(f'Page text: {page.inner_text("body")[:3000]}')
+        raise
 
     return page.locator('#MainContent_gvschedule tr')
 
@@ -65,13 +71,17 @@ def fetch_ferry_schedule(request: FerryRequest):
             page.set_default_timeout(15000)
 
             logger.info('Navigating to WSF schedule page...')
-            rows = _fill_and_submit(page, request)
-
-            for attempt in range(1, MAX_RETRIES):
-                if rows.count() > 0:
-                    break
-                logger.warning(f'No schedule table found, retrying ({attempt}/{MAX_RETRIES})...')
-                rows = _fill_and_submit(page, request)
+            rows = None
+            for attempt in range(MAX_RETRIES):
+                try:
+                    rows = _fill_and_submit(page, request)
+                    if rows.count() > 0:
+                        break
+                    logger.warning(f'No schedule table found, retrying ({attempt + 1}/{MAX_RETRIES})...')
+                except Exception as e:
+                    logger.warning(f'Attempt {attempt + 1}/{MAX_RETRIES} failed: {e}')
+                    if attempt == MAX_RETRIES - 1:
+                        raise
 
             content = rows.all_inner_texts()
             logger.info(f'Page title: {page.title()}')
