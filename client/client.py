@@ -36,21 +36,26 @@ def _fill_and_submit(page, request: FerryRequest):
     page.goto(WSF_ENDPOINT, wait_until='domcontentloaded', timeout=15000)
 
     page.locator('#MainContent_dlFromTermList').select_option(value=TERMINAL_MAP[request.terminal_from])
+    page.locator('#MainContent_dlToTermList').wait_for(state='attached')
     page.locator('#MainContent_dlToTermList').select_option(value=TERMINAL_MAP[request.terminal_to])
 
-    page.locator('#MainContent_txtDatePicker').type(request.sailing_date.replace('/', ''))
-    page.click('body')
+    page.evaluate(f"""
+        const dp = $('#MainContent_txtDatePicker');
+        dp.datepicker('setDate', '{request.sailing_date}');
+        dp.trigger('change');
+    """)
 
     page.locator('#MainContent_dlVehicle').select_option(value=VEHICLE_MAP[request.vehicle_size])
+    page.locator('#MainContent_ddlCarTruck14To22').wait_for(state='attached')
     page.locator('#MainContent_ddlCarTruck14To22').select_option(value=VEHICLE_HEIGHT_MAP[request.vehicle_height])
 
     page.locator('#MainContent_linkBtnContinue').click()
     try:
         page.locator('#MainContent_gvschedule').wait_for(state='visible', timeout=30000)
     except Exception:
-        logger.error(f'Page URL: {page.url}')
-        logger.error(f'Page title: {page.title()}')
-        logger.error(f'Page text: {page.inner_text("body")[:3000]}')
+        logger.debug(f'Page URL: {page.url}')
+        logger.debug(f'Page title: {page.title()}')
+        logger.debug(f'Page text: {page.inner_text("body")[:3000]}')
         raise
 
     return page.locator('#MainContent_gvschedule tr')
@@ -84,9 +89,9 @@ def fetch_ferry_schedule(request: FerryRequest):
                         raise
 
             content = rows.all_inner_texts()
-            logger.info(f'Page title: {page.title()}')
-            logger.info(f'Page URL: {page.url}')
-            logger.info(f'Found {len(content)} rows, first row: {content[0] if content else "none"}')
+            logger.debug(f'Page title: {page.title()}')
+            logger.debug(f'Page URL: {page.url}')
+            logger.debug(f'Found {len(content)} rows, first row: {content[0] if content else "none"}')
         finally:
             logger.info('Closing browser...')
             browser.close()

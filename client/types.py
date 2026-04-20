@@ -38,10 +38,6 @@ class VehicleHeight(Enum):
         raise ValueError(f'Unknown vehicle height: {label}')
 
 
-class FerryAvailabilityStatus(Enum):
-    AVAILABLE = 0
-    NOT_AVAILABLE = 1
-
 @dataclasses.dataclass
 class FerryRequest:
     terminal_from: str

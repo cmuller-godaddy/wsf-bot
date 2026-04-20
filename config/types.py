@@ -1,5 +1,5 @@
 from typing import TypedDict
-import datetime
+
 
 class ConfigRequest(TypedDict):
     terminal_from: str
@@ -18,9 +18,3 @@ class Config(TypedDict):
     interval: int
     requests: list[ConfigRequest]
     discord: ConfigDiscord
-
-
-class ConfigParser:
-    @staticmethod
-    def time(time_str: str) -> datetime.time:
-        return datetime.datetime.strptime(time_str, '%I:%M%p').time()

@@ -1,18 +1,17 @@
 from time import sleep
-import traceback
-import datetime
 import logging
+import os
 
 from client.client import fetch_ferry_schedule
 from client.types import VehicleSize, VehicleHeight, FerryRequest
 from config.config import read_config
-from config.types import Config, ConfigParser
+from config.types import Config
 from notifications.discord import send_notification
 from notifications.types import FoundAvailableNotification
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)s %(message)s',
-    level=logging.INFO,
+    level=os.environ.get('LOG_LEVEL', 'INFO').upper(),
 )
 logger = logging.getLogger(__name__)
 
@@ -45,11 +44,9 @@ def run(config: Config):
             logger.error('Failed to fetch ferry schedule due to: %s', error)
             continue
 
-        has_available = any(entry.available for entry in schedule.entries)
+        available = [entry for entry in schedule.entries if entry.available]
 
-        available = list(filter(lambda x: x.available, schedule.entries))
-
-        if has_available:
+        if available:
             logger.info(f'Found {len(available)} ferries available!')
             send_notification(
                 notification=FoundAvailableNotification(schedule=schedule),

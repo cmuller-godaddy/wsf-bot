@@ -24,6 +24,6 @@ def send_notification(notification: FoundAvailableNotification, webhook: str):
 
     message = '\n'.join(lines)
 
-    logger.info(f'Sending discord message to {webhook}:\n{message}')
+    logger.info(f'Sending discord notification:\n{message}')
 
     DiscordWebhook(url=webhook, content=message).execute()

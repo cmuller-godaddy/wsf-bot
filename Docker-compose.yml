@@ -1,9 +1,11 @@
 version: '3.6'
 
 services:
-  dps-scheduler:
+  wsf-bot:
     build: .
     image: wsf-bot:local
     container_name: wsf-bot
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
     volumes:
       - ./config.yml:/usr/bot/config.yml
